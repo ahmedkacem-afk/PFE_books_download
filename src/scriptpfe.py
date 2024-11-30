@@ -2,9 +2,10 @@ import pandas as pd
 from bs4 import BeautifulSoup
 import requests
 from concurrent.futures import ThreadPoolExecutor
+import os
 #change the download path to your desired path
 
-download_path="../pfe_pdf"
+download_path="../../pfe_pdf"
 
 url = "https://www.recruter.tn/300-pfe-book-2025/"
 
@@ -50,17 +51,18 @@ def get_file_id(company, link):
         print(f"Error processing {company}: {e}")
     return None
 def download_file(file_id, company):
+    file_path=f'{download_path}/{company}.pdf'
     try:
         if not file_id:
             return
         download_url = f'https://drive.google.com/uc?export=download&id={file_id}'
         response = requests.get(download_url)
-        if response.status_code == 200:
-            with open(f'{download_path}{company}.pdf', 'wb') as f:
+        if response.status_code == 200 and not os.path.exists(file_path):
+            with open(file_path, 'wb') as f:
                 f.write(response.content)
             print(f"{company}: File downloaded successfully!")
         else:
-            print(f"{company}: Failed to download the file.")
+            print(f"{company}: Failed to download the file. or might exist")
     except Exception as e:
         print(f"Error downloading {company}: {e}")
 
