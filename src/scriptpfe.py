@@ -40,13 +40,11 @@ def get_file_id(company, link):
             return None
         res = requests.get(link, headers=headers)
         soup = BeautifulSoup(res.text, "html.parser")
-        iframe = soup.find_all("iframe")
+        iframe = soup.find("iframe",src=lambda x: x and x.startswith("https://drive.google.com"))
         if iframe:
-            for i in iframe:
-                if i["src"].startswith("https://drive.google.com"):
-                    src = i["src"].split("/")
-                    id_index = src.index('d') + 1
-                    return src[id_index]
+            src = iframe["src"].split("/")
+            id_index = src.index('d') + 1
+            return src[id_index]
     except Exception as e:
         print(f"Error processing {company}: {e}")
     return None
