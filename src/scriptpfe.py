@@ -3,6 +3,7 @@ from bs4 import BeautifulSoup
 import requests
 from concurrent.futures import ThreadPoolExecutor
 import os
+import threading
 #change the download path to your desired path
 
 download_path="../../pfe_pdf"
@@ -51,6 +52,7 @@ def get_file_id(company, link):
 successful_downloads=0
 
 failed_downloads=0
+counter_lock = threading.Lock()
 def download_file(file_id, company):
     file_path=f'{download_path}/{company}.pdf'
     try:
@@ -63,8 +65,8 @@ def download_file(file_id, company):
                 with open(file_path, 'wb') as f:
                     f.write(response.content)
                 print(f"{company}: File downloaded successfully!")
-            
-                successful_downloads +=1
+                with counter_lock:
+                    successful_downloads +=1
                 
             else:
                  print(f"{company}.pdf: file already exists. ")
@@ -74,7 +76,8 @@ def download_file(file_id, company):
                 
         else:
             print(f"{company}: Failed to download the file. ")
-            failed_downloads += 1
+            with counter_lock:
+                failed_downloads += 1
     
 
     except Exception as e:
