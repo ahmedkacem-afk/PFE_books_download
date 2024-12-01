@@ -50,6 +50,9 @@ def get_file_id(company, link):
     except Exception as e:
         print(f"Error processing {company}: {e}")
     return None
+successful_downloads=0
+
+failed_downloads=0
 def download_file(file_id, company):
     file_path=f'{download_path}/{company}.pdf'
     try:
@@ -57,12 +60,25 @@ def download_file(file_id, company):
             return
         download_url = f'https://drive.google.com/uc?export=download&id={file_id}'
         response = requests.get(download_url)
-        if response.status_code == 200 and not os.path.exists(file_path):
-            with open(file_path, 'wb') as f:
-                f.write(response.content)
-            print(f"{company}: File downloaded successfully!")
+        if response.status_code == 200 :
+            if not os.path.exists(file_path):
+                with open(file_path, 'wb') as f:
+                    f.write(response.content)
+                print(f"{company}: File downloaded successfully!")
+            
+                successful_downloads +=1
+                
+            else:
+                 print(f"{company}.pdf: file already exists. ")
+                
+                
+
+                
         else:
-            print(f"{company}: Failed to download the file. or might exist")
+            print(f"{company}: Failed to download the file. ")
+            failed_downloads += 1
+    
+
     except Exception as e:
         print(f"Error downloading {company}: {e}")
 
@@ -71,5 +87,7 @@ with ThreadPoolExecutor() as executor:
     dd["file_id"] = list(executor.map(get_file_id, dd["company"], dd["link"]))
 
 # Download files concurrently
+dd=dd.iloc[::-1]
 with ThreadPoolExecutor() as executor:
     executor.map(download_file, dd["file_id"], dd["company"])
+print(f"successful downloads :{successful_downloads}/////|||||||******** {failed_downloads}")
