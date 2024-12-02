@@ -49,9 +49,8 @@ def get_file_id(company, link):
     except Exception as e:
         print(f"Error processing {company}: {e}")
     return None
-successful_downloads=0
+downloads={"successful_downloads":[],"failed_downloads":[],"already_downloaded":[]}
 
-failed_downloads=0
 counter_lock = threading.Lock()
 def download_file(file_id, company):
     file_path=f'{download_path}/{company}.pdf'
@@ -66,18 +65,19 @@ def download_file(file_id, company):
                     f.write(response.content)
                 print(f"{company}: File downloaded successfully!")
                 with counter_lock:
-                    successful_downloads +=1
+                    downloads["successful_downloads"].append(company)
                 
             else:
-                 print(f"{company}.pdf: file already exists. ")
-                
+                print(f"{company}.pdf: file already exists. ")
+                with counter_lock:
+                    downloads["already_downloaded"].append(company)
                 
 
                 
         else:
             print(f"{company}: Failed to download the file. ")
             with counter_lock:
-                failed_downloads += 1
+                downloads["failed_downloads"].append(company)
     
 
     except Exception as e:
@@ -91,4 +91,4 @@ with ThreadPoolExecutor() as executor:
 dd=dd.iloc[::-1]
 with ThreadPoolExecutor() as executor:
     executor.map(download_file, dd["file_id"], dd["company"])
-print(f"successful downloads :{successful_downloads}/////|||||||******** {failed_downloads}")
+print(f"successful downloads :{downloads['successful_downloads']}\n+++\n Number: {len(downloads['successful_downloads'])}\n/////|||||||********\n failed downloads {downloads['failed_downloads']} \n+++\n Number: {len(downloads['failed_downloads'])}\n////////////**********\n already downloaded {downloads['already_downloaded']} \n+++ \nNumber: {len(downloads['already_downloaded'])} ")
