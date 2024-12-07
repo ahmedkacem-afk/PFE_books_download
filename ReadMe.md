@@ -2,9 +2,10 @@
 
 ## Description
 
-This project is a Python web scraper that extracts company names and associated Google Drive links from [recruter.tn](https://www.recruter.tn/300-pfe-book-2025/), downloads the linked PDFs, and saves them locally. In the scriptpfe.py make sure to change the path to the directory where you want to save the PDFs.
+This project is a Python web scraper that extracts company names and associated Google Drive links from [recruter.tn](https://www.recruter.tn), downloads the linked PDFs, and saves them locally. In the main.py .
 
 ## Setup Instructions
+make sure you change the directory  after cloning to PFE_books_download/sitemap_scraping
 
 ### Option 1: Running with Docker
 
