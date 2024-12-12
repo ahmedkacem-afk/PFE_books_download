@@ -5,12 +5,14 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import List, Union
 import threading
 import os
+import logging 
+import urllib.parse
 # Constants
 PFE_REAL = ["2025", "pfe-book"]
 HEADERS = {"User-Agent": "Mozilla/5.0"}
 FILTER_DATE = "2024-11-01"  # Set your cutoff date here
 DOWNLOAD_PATH="pfe_pdf"
-
+TIMEOUT=10
 downloads={"successful_downloads":[],"failed_downloads":[],"already_downloaded":[]}
 def check_pfe_link(link: str) -> bool:
     """
@@ -45,19 +47,43 @@ def filter_links_by_keywords(df: pd.DataFrame, link_column: str = "loc") -> pd.D
         print(f"Error filtering DataFrame: {e}")
         return pd.DataFrame()
 
-def fetch_and_parse_xml(url: str) -> Union[pd.DataFrame, None]:
+def fetch_and_parse_xml(url: str):
     """
-    Fetches an XML URL and parses it into a pandas DataFrame.
+    Fetches an XML URL and parses it into a DataFrame containing 'loc' and 'lastmod' values.
+    Returns a pandas DataFrame with 'URL' and 'Last Modified' columns.
     """
     try:
-        response = requests.get(url, headers=HEADERS, timeout=10)
-        response.raise_for_status()
-        df = pd.read_xml(response.content)
-        return df
-    except Exception as e:
-        print(f"Failed to fetch or parse {url}: {e}")
-        return None
+        print(f"Fetching XML data from: {url}")
+        response = requests.get(url, headers=HEADERS, timeout=TIMEOUT)
+        response.encoding = 'utf-8'
 
+        # Parse the response with BeautifulSoup using lxml-xml parser
+        soup = BeautifulSoup(response.text, 'lxml-xml')
+        print(soup)
+        # Extract all <loc> and <lastmod> tags
+        urls = [loc.text for loc in soup.find_all('loc')]
+        lastmod_dates = [lastmod.text if lastmod else None for lastmod in soup.find_all('lastmod')]
+
+        # Check if the lengths of URLs and lastmod_dates match
+        if len(urls) != len(lastmod_dates):
+            logging.warning(f"Number of 'loc' tags does not match the number of 'lastmod' tags. Some URLs may not have a 'lastmod' date.")
+
+        # Create a DataFrame with 'URL' and 'Last Modified' columns
+        df = pd.DataFrame({
+            'loc': urls,
+            'lastmod': lastmod_dates
+        })
+
+        # Return the DataFrame
+        return df
+
+    except requests.exceptions.Timeout:
+        logging.error(f"Timeout while fetching {url}")
+    except Exception as e:
+        logging.error(f"Failed to fetch or parse {url}: {e}")
+
+    # Return an empty DataFrame in case of error
+    return pd.DataFrame(columns=['loc', 'lastmod'])
 
 def filter_dataframe_by_date(df: pd.DataFrame, date_column: str = "lastmod", cutoff_date: str = FILTER_DATE) -> pd.DataFrame:
     """
@@ -134,8 +160,8 @@ def main_sitemap_processing(sitemap_urls: List[str]) -> pd.DataFrame:
 
 def extract_company_name(link) -> str:
     company_name=link.split("/")[-2]
-    
-    return company_name
+    decoded_string = urllib.parse.unquote(company_name)
+    return decoded_string
 def get_file_id( link:str ,companies:list) -> str:
     print(f"Processing link: {link}")
     try:
@@ -218,9 +244,9 @@ if __name__ == "__main__":
     final_df = filter_links_by_keywords(final_df)
     final_df=final_df.drop_duplicates(subset=["loc"])
     existing_file_names=get_existing_file_name()
-   
+    print(final_df)
     # Filter out rows where any substring in `existing_file_names` is found in `final_df["loc"]`
-    final_df = final_df[~final_df["loc"].apply(lambda loc: any(substring in loc for substring in existing_file_names))]
+    #sfinal_df = final_df[~final_df["loc"].apply(lambda loc: any(substring in loc for substring in existing_file_names))]
     final_df.sort_values(by="lastmod", ascending=False, inplace=True)
     print(f"++++++++++++++++++++++++++++++++++++++++++++++++final_df\n: {final_df}")  
     print(f"**********************************************************:      {len(final_df)}")
