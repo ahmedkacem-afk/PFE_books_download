@@ -67,7 +67,7 @@ def fetch_and_parse_xml(url: str):
         # Check if the lengths of URLs and lastmod_dates match
         if len(urls) != len(lastmod_dates):
             logging.warning(f"Number of 'loc' tags does not match the number of 'lastmod' tags. Some URLs may not have a 'lastmod' date.")
-
+        
         # Create a DataFrame with 'URL' and 'Last Modified' columns
         df = pd.DataFrame({
             'loc': urls,
@@ -214,7 +214,7 @@ def download_file(file_id, company):
     except Exception as e:
         print(f"Error downloading {company}: {e}")
 def get_existing_file_name():
-    file_names= os.listdir(DOWNLOAD_PATH)
+    file_names= os.listdir(f"./{DOWNLOAD_PATH}")
     file_names=[file_name.split(".")[0] for file_name in file_names]
     return file_names
 # Main Execution
@@ -246,7 +246,7 @@ if __name__ == "__main__":
     existing_file_names=get_existing_file_name()
     print(final_df)
     # Filter out rows where any substring in `existing_file_names` is found in `final_df["loc"]`
-    #sfinal_df = final_df[~final_df["loc"].apply(lambda loc: any(substring in loc for substring in existing_file_names))]
+    final_df = final_df[~final_df["loc"].apply(lambda loc: any(substring in urllib.parse.unquote(loc) for substring in existing_file_names))]
     final_df.sort_values(by="lastmod", ascending=False, inplace=True)
     print(f"++++++++++++++++++++++++++++++++++++++++++++++++final_df\n: {final_df}")  
     print(f"**********************************************************:      {len(final_df)}")
@@ -263,6 +263,7 @@ if __name__ == "__main__":
     download_df["file_id"] = file_ids # Append the result to the 'file_id' column
     download_df["company"]=companies
     downloads["already_downloaded"]=existing_file_names
+    download_df=download_df.dropna()
     with ThreadPoolExecutor() as executor:
         executor.map(download_file, download_df["file_id"], download_df["company"])
     print(f"successful downloads :{downloads['successful_downloads']}\n+++\n Number: {len(downloads['successful_downloads'])}\n/////|||||||********\n failed downloads {downloads['failed_downloads']} \n+++\n Number: {len(downloads['failed_downloads'])}\n////////////**********\n already downloaded {downloads['already_downloaded']} \n+++ \nNumber: {len(downloads['already_downloaded'])} ")
